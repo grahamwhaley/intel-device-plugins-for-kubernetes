@@ -31,7 +31,6 @@ import (
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 	utilsexec "k8s.io/utils/exec"
 
-	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 	dpapi "github.com/intel/intel-device-plugins-for-kubernetes/pkg/deviceplugin"
 )
 
@@ -163,7 +162,7 @@ func (dp *DevicePlugin) getOnlineDevices(iommuOn bool) ([]device, error) {
 			devtype: matches[1],
 			bsf:     matches[4],
 		})
-		debug.Print("New online device", devices[len(devices)-1])
+		klog.V(4).Info("New online device", devices[len(devices)-1])
 	}
 
 	return devices, nil
@@ -175,7 +174,7 @@ func getUIODeviceListPath(sysfs, devtype, bsf string) string {
 
 func getUIODevices(sysfs, devtype, bsf string) ([]string, error) {
 	sysfsDir := getUIODeviceListPath(sysfs, devtype, bsf)
-	debug.Print("Path to uio devices:", sysfsDir)
+	klog.V(4).Info("Path to uio devices:", sysfsDir)
 
 	devFiles, err := ioutil.ReadDir(sysfsDir)
 	if err != nil {
@@ -209,7 +208,7 @@ func (dp *DevicePlugin) parseConfigs(devices []device) (map[string]section, erro
 			if section.Name() == "GENERAL" || section.Name() == "KERNEL" || section.Name() == "KERNEL_QAT" || section.Name() == ini.DEFAULT_SECTION {
 				continue
 			}
-			debug.Print(section.Name())
+			klog.V(4).Info(section.Name())
 			if err := drvConfig.update(dev.id, section); err != nil {
 				return nil, err
 			}
