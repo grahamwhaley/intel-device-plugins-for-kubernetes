@@ -25,6 +25,7 @@ import (
 	"github.com/intel/intel-device-plugins-for-kubernetes/cmd/qat_plugin/kerneldrv"
 	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/deviceplugin"
+	"k8s.io/klog"
 )
 
 const (
@@ -60,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("QAT device plugin started in '%s' mode\n", *mode)
+	klog.V(1).Infof("QAT device plugin started in '%s' mode\n", *mode)
 	manager := deviceplugin.NewManager(namespace, plugin)
 	manager.Run()
 }

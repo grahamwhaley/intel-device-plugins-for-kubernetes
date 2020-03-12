@@ -27,6 +27,7 @@ import (
 	"github.com/go-ini/ini"
 	"github.com/pkg/errors"
 
+	"k8s.io/klog"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 	utilsexec "k8s.io/utils/exec"
 
@@ -182,7 +183,7 @@ func getUIODevices(sysfs, devtype, bsf string) ([]string, error) {
 	}
 
 	if len(devFiles) == 0 {
-		fmt.Println("WARNING: no uio devices listed in", sysfsDir)
+		klog.Warning("no uio devices listed in", sysfsDir)
 	}
 
 	devices := []string{}
