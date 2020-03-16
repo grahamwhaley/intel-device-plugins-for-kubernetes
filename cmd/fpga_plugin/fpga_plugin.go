@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/klog"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
@@ -269,7 +270,7 @@ func (dp *devicePlugin) scanFPGAs() (dpapi.DeviceTree, error) {
 
 	fpgaFiles, err := ioutil.ReadDir(dp.sysfsDir)
 	if err != nil {
-		fmt.Printf("WARNING: Can't read folder %s. Kernel driver not loaded?\n", dp.sysfsDir)
+		klog.Warningf("Can't read folder %s. Kernel driver not loaded?\n", dp.sysfsDir)
 		return dp.getDevTree([]device{}), nil
 	}
 
@@ -337,11 +338,6 @@ func getPluginParams(mode string) (getDevTreeFunc, bool, string, error) {
 	return getDevTree, ignoreAfuIDs, annotationValue, nil
 }
 
-func fatal(err error) {
-	fmt.Printf("ERROR: %+v\n", err)
-	os.Exit(1)
-}
-
 func main() {
 	var mode string
 	var kubeconfig string
@@ -363,7 +359,7 @@ func main() {
 
 	nodeMode, err := getModeOverrideFromCluster(nodename, kubeconfig, master, mode)
 	if err != nil {
-		fmt.Printf("WARNING: could not get mode override from cluster: %+v\n", err)
+		klog.Warningf("could not get mode override from cluster: %+v\n", err)
 	}
 
 	var modeMessage string
@@ -376,10 +372,10 @@ func main() {
 
 	plugin, err := newDevicePlugin(mode)
 	if err != nil {
-		fatal(err)
+		klog.Fatal(err)
 	}
 
-	fmt.Printf("FPGA device plugin (%s) started in %s mode%s\n", plugin.name, mode, modeMessage)
+	klog.V(1).Infof("FPGA device plugin (%s) started in %s mode%s\n", plugin.name, mode, modeMessage)
 	manager := dpapi.NewManager(namespace, plugin)
 	manager.Run()
 }
