@@ -29,7 +29,6 @@ import (
 	"k8s.io/klog"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
-	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 	dpapi "github.com/intel/intel-device-plugins-for-kubernetes/pkg/deviceplugin"
 )
 
@@ -89,7 +88,7 @@ func (dp *devicePlugin) scan() (dpapi.DeviceTree, error) {
 		var nodes []pluginapi.DeviceSpec
 
 		if !dp.gpuDeviceReg.MatchString(f.Name()) {
-			debug.Print("Not compatible device", f.Name())
+			klog.V(4).Info("Not compatible device", f.Name())
 			continue
 		}
 
@@ -100,7 +99,7 @@ func (dp *devicePlugin) scan() (dpapi.DeviceTree, error) {
 		}
 
 		if strings.TrimSpace(string(dat)) != vendorString {
-			debug.Print("Non-Intel GPU", f.Name())
+			klog.V(4).Info("Non-Intel GPU", f.Name())
 			continue
 		}
 
@@ -119,7 +118,7 @@ func (dp *devicePlugin) scan() (dpapi.DeviceTree, error) {
 				continue
 			}
 
-			debug.Printf("Adding %s to GPU %s", devPath, f.Name())
+			klog.V(4).Infof("Adding %s to GPU %s", devPath, f.Name())
 			nodes = append(nodes, pluginapi.DeviceSpec{
 				HostPath:      devPath,
 				ContainerPath: devPath,
@@ -142,15 +141,9 @@ func (dp *devicePlugin) scan() (dpapi.DeviceTree, error) {
 
 func main() {
 	var sharedDevNum int
-	var debugEnabled bool
 
 	flag.IntVar(&sharedDevNum, "shared-dev-num", 1, "number of containers sharing the same GPU device")
-	flag.BoolVar(&debugEnabled, "debug", false, "enable debug output")
 	flag.Parse()
-
-	if debugEnabled {
-		debug.Activate()
-	}
 
 	if sharedDevNum < 1 {
 		klog.Warning("The number of containers sharing the same GPU must greater than zero")
