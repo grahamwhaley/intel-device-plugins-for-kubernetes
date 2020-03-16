@@ -26,6 +26,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"k8s.io/klog"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
@@ -68,7 +69,7 @@ func (dp *devicePlugin) Scan(notifier dpapi.Notifier) error {
 	for {
 		devTree, err := dp.scan()
 		if err != nil {
-			fmt.Println("WARNING: Failed to scan: ", err)
+			klog.Warning("Failed to scan: ", err)
 		}
 
 		notifier.Notify(devTree)
@@ -94,7 +95,7 @@ func (dp *devicePlugin) scan() (dpapi.DeviceTree, error) {
 
 		dat, err := ioutil.ReadFile(path.Join(dp.sysfsDir, f.Name(), "device/vendor"))
 		if err != nil {
-			fmt.Println("WARNING: Skipping. Can't read vendor file: ", err)
+			klog.Warning("Skipping. Can't read vendor file: ", err)
 			continue
 		}
 
@@ -152,11 +153,11 @@ func main() {
 	}
 
 	if sharedDevNum < 1 {
-		fmt.Println("The number of containers sharing the same GPU must greater than zero")
+		klog.Warning("The number of containers sharing the same GPU must greater than zero")
 		os.Exit(1)
 	}
 
-	fmt.Println("GPU device plugin started")
+	klog.V(1).Info("GPU device plugin started")
 
 	plugin := newDevicePlugin(sysfsDrmDirectory, devfsDriDirectory, sharedDevNum)
 	manager := dpapi.NewManager(namespace, plugin)
