@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 )
@@ -51,6 +52,7 @@ var (
 )
 
 func init() {
+	klog.InitFlags(nil)
 	addToScheme(scheme)
 }
 
@@ -62,7 +64,7 @@ func addToScheme(scheme *runtime.Scheme) {
 func getTLSConfig(certFile string, keyFile string) *tls.Config {
 	sCert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		fatal(err)
+		klog.Fatal(err)
 	}
 	return &tls.Config{
 		Certificates: []tls.Certificate{sCert},
@@ -76,7 +78,7 @@ func mutatePods(ar v1beta1.AdmissionReview, pm *patcherManager) *v1beta1.Admissi
 
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if ar.Request.Resource != podResource {
-		fmt.Printf("WARNING: Unexpected resource type %s\n", ar.Request.Resource)
+		klog.Warningf("Unexpected resource type %s\n", ar.Request.Resource)
 		return nil
 	}
 
@@ -84,7 +86,7 @@ func mutatePods(ar v1beta1.AdmissionReview, pm *patcherManager) *v1beta1.Admissi
 	pod := corev1.Pod{}
 	deserializer := codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
-		fmt.Printf("ERROR: %+v\n", err)
+		klog.Warningf("%+v\n", err)
 		return toAdmissionResponse(err)
 	}
 
@@ -99,7 +101,7 @@ func mutatePods(ar v1beta1.AdmissionReview, pm *patcherManager) *v1beta1.Admissi
 	debug.Printf("Received pod '%s' in name space '%s'", name, namespace)
 	patcher, err := pm.getPatcher(namespace)
 	if err != nil {
-		fmt.Printf("ERROR: %+v\n", err)
+		klog.Warningf("%+v\n", err)
 		return toAdmissionResponse(err)
 	}
 
@@ -163,7 +165,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	ar := v1beta1.AdmissionReview{}
 	deserializer := codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
-		fmt.Printf("ERROR: %+v\n", err)
+		klog.Warningf("%+v\n", err)
 		reviewResponse = toAdmissionResponse(err)
 	} else {
 		if ar.Request == nil {
@@ -190,11 +192,11 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 
 	resp, err := json.Marshal(response)
 	if err != nil {
-		fmt.Println("ERROR:", err)
+		klog.Warning("%+v\n", err)
 		return
 	}
 	if _, err := w.Write(resp); err != nil {
-		fmt.Println("ERROR:", err)
+		klog.Warningf("%+v\n", err)
 	}
 }
 
@@ -204,11 +206,6 @@ func makePodsHandler(pm *patcherManager) func(w http.ResponseWriter, r *http.Req
 			return mutatePods(ar, pm)
 		})
 	}
-}
-
-func fatal(err error) {
-	fmt.Printf("ERROR: %+v\n", err)
-	os.Exit(1)
 }
 
 func main() {
@@ -235,22 +232,22 @@ func main() {
 	}
 
 	if certFile == "" {
-		fmt.Println("TLS certificate file is not set")
+		klog.Fatal("TLS certificate file is not set")
 		os.Exit(1)
 	}
 
 	if keyFile == "" {
-		fmt.Println("TLS private key is not set")
+		klog.Fatal("TLS private key is not set")
 		os.Exit(1)
 	}
 
 	if _, err = os.Stat(certFile); err != nil {
-		fmt.Println("TLS certificate not found")
+		klog.Fatal("TLS certificate not found")
 		os.Exit(1)
 	}
 
 	if _, err = os.Stat(keyFile); err != nil {
-		fmt.Println("TLS private key not found")
+		klog.Fatal("TLS private key not found")
 		os.Exit(1)
 	}
 
@@ -260,18 +257,18 @@ func main() {
 		config, err = clientcmd.BuildConfigFromFlags(master, kubeconfig)
 	}
 	if err != nil {
-		fmt.Println("Failed to get cluster config ", err)
+		klog.Fatal("Failed to get cluster config ", err)
 		os.Exit(1)
 	}
 
 	patcherManager, err := newPatcherManager(mode)
 	if err != nil {
-		fatal(err)
+		klog.Fatal(err)
 	}
 
 	controller, err := newController(patcherManager, config)
 	if err != nil {
-		fatal(err)
+		klog.Fatal(err)
 	}
 	go controller.run(controllerThreadNum)
 
@@ -284,5 +281,5 @@ func main() {
 		TLSConfig: getTLSConfig(certFile, keyFile),
 	}
 
-	fatal(server.ListenAndServeTLS("", ""))
+	klog.Fatal(server.ListenAndServeTLS("", ""))
 }

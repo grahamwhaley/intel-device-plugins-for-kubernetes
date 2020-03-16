@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	clientset "github.com/intel/intel-device-plugins-for-kubernetes/pkg/client/clientset/versioned"
 	informers "github.com/intel/intel-device-plugins-for-kubernetes/pkg/client/informers/externalversions"
@@ -89,7 +89,7 @@ func (c *controller) run(threadiness int) error {
 	defer runtime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	fmt.Println("Starting controller")
+	klog.V(1).Info("Starting controller")
 
 	go c.informerFactory.Start(c.stopCh)
 
@@ -107,7 +107,7 @@ func (c *controller) run(threadiness int) error {
 			}
 		}, time.Second, c.stopCh)
 	}
-	fmt.Println("Started controller workers")
+	klog.V(1).Info("Started controller workers")
 	<-c.stopCh
 
 	return nil
