@@ -27,7 +27,6 @@ import (
 	"k8s.io/klog"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
-	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 	dpapi "github.com/intel/intel-device-plugins-for-kubernetes/pkg/deviceplugin"
 	"github.com/pkg/errors"
 )
@@ -266,7 +265,7 @@ func (dp *devicePlugin) getFME(interfaceIDPath string, devName string) (*region,
 func (dp *devicePlugin) scanFPGAs() (dpapi.DeviceTree, error) {
 	var devices []device
 
-	debug.Print("Start new FPGA scan")
+	klog.V(4).Info("Start new FPGA scan")
 
 	fpgaFiles, err := ioutil.ReadDir(dp.sysfsDir)
 	if err != nil {
@@ -343,19 +342,13 @@ func main() {
 	var kubeconfig string
 	var master string
 	var nodename string
-	var debugEnabled bool
 
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
 	flag.StringVar(&master, "master", "", "master url")
 	flag.StringVar(&nodename, "node-name", os.Getenv("NODE_NAME"), "node name in the cluster to query mode annotation from")
 	flag.StringVar(&mode, "mode", string(afMode),
 		fmt.Sprintf("device plugin mode: '%s' (default), '%s' or '%s'", afMode, regionMode, regionDevelMode))
-	flag.BoolVar(&debugEnabled, "debug", false, "enable debug output")
 	flag.Parse()
-
-	if debugEnabled {
-		debug.Activate()
-	}
 
 	nodeMode, err := getModeOverrideFromCluster(nodename, kubeconfig, master, mode)
 	if err != nil {
