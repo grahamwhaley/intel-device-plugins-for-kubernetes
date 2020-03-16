@@ -30,7 +30,6 @@ import (
 	clientset "github.com/intel/intel-device-plugins-for-kubernetes/pkg/client/clientset/versioned"
 	informers "github.com/intel/intel-device-plugins-for-kubernetes/pkg/client/informers/externalversions"
 	listers "github.com/intel/intel-device-plugins-for-kubernetes/pkg/client/listers/fpga.intel.com/v1"
-	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 )
 
 const (
@@ -153,7 +152,7 @@ func (c *controller) processNextWorkItem() bool {
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.queue.Forget(obj)
-		debug.Printf("Successfully synced '%s'", key)
+		klog.V(4).Infof("Successfully synced '%s'", key)
 		return nil
 	}(obj)
 
@@ -186,7 +185,7 @@ func (c *controller) syncAfHandler(key string) error {
 		// processing.
 		if k8serrors.IsNotFound(err) {
 			runtime.HandleError(errors.Errorf("accelerated function '%s' in work queue no longer exists", key))
-			debug.Printf("AF '%s' no longer exists", key)
+			klog.V(4).Infof("AF '%s' no longer exists", key)
 			patcher.removeAf(name)
 			return nil
 		}
@@ -194,7 +193,7 @@ func (c *controller) syncAfHandler(key string) error {
 		return err
 	}
 
-	debug.Print("Received", af)
+	klog.V(4).Info("Received", af)
 	patcher.addAf(af)
 	return nil
 }
@@ -220,7 +219,7 @@ func (c *controller) syncRegionHandler(key string) error {
 		// processing.
 		if k8serrors.IsNotFound(err) {
 			runtime.HandleError(errors.Errorf("FPGA region '%s' in work queue no longer exists", key))
-			debug.Printf("Region '%s' no longer exists", key)
+			klog.V(4).Infof("Region '%s' no longer exists", key)
 			patcher.removeRegion(name)
 			return nil
 		}
@@ -228,7 +227,7 @@ func (c *controller) syncRegionHandler(key string) error {
 		return err
 	}
 
-	debug.Print("Received", region)
+	klog.V(4).Info("Received", region)
 	patcher.addRegion(region)
 	return nil
 }

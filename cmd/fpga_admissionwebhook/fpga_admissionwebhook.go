@@ -36,8 +36,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
-
-	"github.com/intel/intel-device-plugins-for-kubernetes/pkg/debug"
 )
 
 const (
@@ -74,7 +72,7 @@ func getTLSConfig(certFile string, keyFile string) *tls.Config {
 func mutatePods(ar v1beta1.AdmissionReview, pm *patcherManager) *v1beta1.AdmissionResponse {
 	var ops []string
 
-	debug.Print("mutating pods")
+	klog.V(4).Info("mutating pods")
 
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if ar.Request.Resource != podResource {
@@ -98,7 +96,7 @@ func mutatePods(ar v1beta1.AdmissionReview, pm *patcherManager) *v1beta1.Admissi
 	if name == "" && pod.ObjectMeta.GenerateName != "" {
 		name = pod.ObjectMeta.GenerateName
 	}
-	debug.Printf("Received pod '%s' in name space '%s'", name, namespace)
+	klog.V(4).Infof("Received pod '%s' in name space '%s'", name, namespace)
 	patcher, err := pm.getPatcher(namespace)
 	if err != nil {
 		klog.Warningf("%+v\n", err)
@@ -148,7 +146,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	}
 
 	if len(body) == 0 {
-		debug.Print("No body in request")
+		klog.V(4).Info("No body in request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -156,12 +154,12 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	// verify the content type is accurate
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		debug.Printf("contentType=%s, expect application/json", contentType)
+		klog.V(4).Infof("contentType=%s, expect application/json", contentType)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	debug.Printf("handling request: %s", string(body))
+	klog.V(4).Infof("handling request: %s", string(body))
 	ar := v1beta1.AdmissionReview{}
 	deserializer := codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
@@ -176,7 +174,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 			reviewResponse = admit(ar)
 		}
 	}
-	debug.Print("sending response", string(reviewResponse.Patch))
+	klog.V(4).Info("sending response", string(reviewResponse.Patch))
 
 	response := v1beta1.AdmissionReview{}
 	if reviewResponse != nil {
@@ -192,7 +190,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 
 	resp, err := json.Marshal(response)
 	if err != nil {
-		klog.Warning("%+v\n", err)
+		klog.Warningf("%+v\n", err)
 		return
 	}
 	if _, err := w.Write(resp); err != nil {
@@ -216,7 +214,6 @@ func main() {
 	var mode string
 	var config *rest.Config
 	var err error
-	var debugEnabled bool
 
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
 	flag.StringVar(&master, "master", "", "master url")
@@ -224,12 +221,7 @@ func main() {
 		"File containing the x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert).")
 	flag.StringVar(&keyFile, "tls-private-key-file", keyFile, "File containing the x509 private key matching --tls-cert-file.")
 	flag.StringVar(&mode, "mode", preprogrammed, fmt.Sprintf("webhook mode: '%s' (default) or '%s'", preprogrammed, orchestrated))
-	flag.BoolVar(&debugEnabled, "debug", false, "enable debug output")
 	flag.Parse()
-
-	if debugEnabled {
-		debug.Activate()
-	}
 
 	if certFile == "" {
 		klog.Fatal("TLS certificate file is not set")
@@ -274,7 +266,7 @@ func main() {
 
 	http.HandleFunc("/pods", makePodsHandler(patcherManager))
 
-	debug.Print("Webhook started")
+	klog.V(4).Info("Webhook started")
 
 	server := &http.Server{
 		Addr:      ":8443",
